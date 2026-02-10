@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nømi - Histoire</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6B4E71 0%, #8B7B9E 50%, #4A8B9E 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Effet étoiles */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20% 30%, white, transparent),
+                radial-gradient(2px 2px at 60% 70%, white, transparent),
+                radial-gradient(1px 1px at 50% 50%, white, transparent),
+                radial-gradient(1px 1px at 80% 10%, white, transparent),
+                radial-gradient(2px 2px at 90% 60%, white, transparent),
+                radial-gradient(1px 1px at 33% 80%, white, transparent);
+            background-size: 200% 200%;
+            animation: twinkle 8s ease-in-out infinite;
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 0.9; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .logo {
+            font-size: 4rem;
+            color: #FFE5F1;
+            text-shadow: 0 0 20px rgba(255, 229, 241, 0.5);
+            margin-bottom: 20px;
+            letter-spacing: 8px;
+        }
+
+        .character-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            margin-bottom: 60px;
+            animation: fadeIn 1.5s ease-out;
+        }
+
+        .visual-content {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .character-image {
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .character-image:hover {
+            transform: scale(1.05);
+        }
+
+        .character-video {
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .story-content {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .character-name {
+            font-size: 3rem;
+            color: #FFE5F1;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 229, 241, 0.5);
+        }
+
+        .story-text {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: #E8E8F5;
+            margin-bottom: 40px;
+        }
+
+        .audio-player {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px 30px;
+            border-radius: 50px;
+            margin-top: 30px;
+        }
+
+        .play-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFE5F1, #C7B8EA);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(255, 229, 241, 0.4);
+        }
+
+        .play-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 30px rgba(255, 229, 241, 0.6);
+        }
+
+        .play-button svg {
+            width: 24px;
+            height: 24px;
+            fill: #6B4E71;
+        }
+
+        .audio-progress {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .audio-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #FFE5F1, #C7B8EA);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .audio-time {
+            color: #E8E8F5;
+            font-size: 0.9rem;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 968px) {
+            .character-section {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .logo {
+                font-size: 3rem;
+            }
+
+            .character-name {
+                font-size: 2rem;
+            }
+
+            .story-content {
+                padding: 30px;
+            }
+        }
+
+        /* Instructions pour modification */
+        .edit-instructions {
+            background: rgba(255, 229, 241, 0.1);
+            border: 2px dashed rgba(255, 229, 241, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 60px;
+            color: #E8E8F5;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .edit-instructions h3 {
+            color: #FFE5F1;
+            margin-bottom: 15px;
+        }
+
+        .edit-instructions code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #C7B8EA;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="logo">nømi</h1>
+        </header>
+
+        <div class="character-section">
+            <div class="visual-content">
+                <img src="950E2392-F4C3-40AE-8D28-A70589A46F5E.png" alt="nømi" class="character-image" id="characterImage">
+                
+                <video class="character-video" controls id="characterVideo">
+                    <source src="nomi village.mp4" type="video/mp4">
+                    Ton navigateur ne supporte pas la vidéo.
+                </video>
+            </div>
+
+            <div class="story-content">
+                <h2 class="character-name" id="characterName">nømi</h2>
+                
+                <div class="story-text" id="storyText">
+                    <p>Dans un monde lointain, sous un ciel étoilé parsemé de lunes lumineuses, vivait nømi. Petit gardien de la nuit, il veillait sur les rêves des enfants endormis.</p>
+                    
+                    <p>Chaque soir, lorsque le croissant de lune brillait sur son front, nømi s'éveillait pour sa mission : parcourir les champs de fleurs turquoise et collecter les étoiles filantes dans sa petite besace.</p>
+                    
+                    <p>Ces étoiles, il les transformait en doux rêves qu'il déposait délicatement dans les chambres des enfants. Car nømi savait que chaque rêve est une aventure, et chaque aventure mérite d'être merveilleuse.</p>
+                </div>
+
+                <div class="audio-player">
+                    <button class="play-button" id="playButton" disabled style="opacity: 0.5; cursor: not-allowed;">
+                        <svg viewBox="0 0 24 24" id="playIcon">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        <svg viewBox="0 0 24 24" id="pauseIcon" style="display: none;">
+                            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                        </svg>
+                    </button>
+                    <div class="audio-progress">
+                        <div class="audio-progress-bar" id="progressBar"></div>
+                    </div>
+                    <div class="audio-time" id="audioTime">Audio à venir</div>
+                </div>
+
+                <!-- Audio désactivé temporairement -->
+                <audio id="storyAudio" preload="metadata" style="display: none;">
+                    <!-- Pas de source pour le moment -->
+                </audio>
+            </div>
+        </div>
+
+        <div class="edit-instructions">
+            <h3>📝 Fichiers configurés</h3>
+            <p><strong>Image :</strong> 950E2392-F4C3-40AE-8D28-A70589A46F5E.png ✅</p>
+            <p><strong>Vidéo :</strong> nomi village.mp4 ✅</p>
+            <p><strong>Audio :</strong> À ajouter plus tard (bouton désactivé)</p>
+            <p><strong>Pour ajouter l'audio plus tard :</strong> Modifie la ligne avec <code>id="storyAudio"</code> et ajoute <code>&lt;source src="ton-audio.mp3" type="audio/mpeg"&gt;</code>, puis retire l'attribut <code>disabled</code> du bouton play.</p>
+        </div>
+    </div>
+
+    <script>
+        const audio = document.getElementById('storyAudio');
+        const playButton = document.getElementById('playButton');
+        const playIcon = document.getElementById('playIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
+        const progressBar = document.getElementById('progressBar');
+        const audioTime = document.getElementById('audioTime');
+
+        let isPlaying = false;
+
+        // Fonction play/pause (désactivée pour le moment car pas d'audio)
+        playButton.addEventListener('click', () => {
+            if (audio.src) {
+                if (isPlaying) {
+                    audio.pause();
+                    playIcon.style.display = 'block';
+                    pauseIcon.style.display = 'none';
+                } else {
+                    audio.play();          
+                    playIcon.style.display = 'none';
+                    pauseIcon.style.display = 'block';
+                }
+                isPlaying = !isPlaying;
+            }
+        });
+
+        // Mise à jour de la progression
+        audio.addEventListener('timeupdate', () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBar.style.width = progress + '%';
+            
+            const currentMin = Math.floor(audio.currentTime / 60);
+            const currentSec = Math.floor(audio.currentTime % 60);
+            const durationMin = Math.floor(audio.duration / 60);
+            const durationSec = Math.floor(audio.duration % 60);
+            
+            audioTime.textContent = `${currentMin}:${currentSec.toString().padStart(2, '0')} / ${durationMin}:${durationSec.toString().padStart(2, '0')}`;
+        });
+
+        // Reset quand l'audio se termine
+        audio.addEventListener('ended', () => {
+            isPlaying = false;
+            playIcon.style.display = 'block';
+            pauseIcon.style.display = 'none';
+            progressBar.style.width = '0%';
+        });
+
+        // Support NFC (si disponible)
+        if ('NDEFReader' in window) {
+            const ndef = new NDEFReader();
+            ndef.scan().then(() => {
+                ndef.addEventListener("reading", ({ message }) => {
+                    // Auto-play quand NFC détecté (si audio disponible)
+                    if (audio.src) {
+                        audio.play();
+                        playIcon.style.display = 'none';
+                        pauseIcon.style.display = 'block';
+                        isPlaying = true;
+                    }
+                });
+            }).catch(err => {
+                console.log('NFC non disponible:', err);
+            });
+        }
+    </script>
+</body>
+</html>
