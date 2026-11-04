@@ -219,6 +219,7 @@ function refreshStudio(flash: { track: DrumClass; changed: number[] }[] = []) {
     }
   }
   drawWave();
+  persist();
 }
 ui.bpm.onchange = () => {
   if (!pattern) return;
@@ -255,6 +256,7 @@ function buildGrid() {
       b.onclick = () => {
         p.grid[d][i] = p.grid[d][i] > 0 ? 0 : 0.85;
         paint();
+        persist();
       };
       row.push(b);
       ui.grid.appendChild(b);
@@ -474,6 +476,7 @@ async function sendText(raw: string) {
     busy = null;
     setBusy(false);
     scrollDown();
+    persist();
   }
 }
 
@@ -531,13 +534,72 @@ ui.json.onclick = () => {
   else localDownload(text, name, 'application/json');
 };
 
+// ---------- Sauvegarde locale (survit au rechargement de la page) ----------
+const SAVE_KEY = 'beatbox-studio-v1';
+function persist() {
+  try {
+    localStorage.setItem(
+      SAVE_KEY,
+      JSON.stringify({
+        pattern,
+        turns,
+        bpm: ui.bpm.value,
+        bars: ui.bars.value,
+        sens: ui.sens.value,
+        withOrig: ui.withOrig.checked,
+      }),
+    );
+  } catch {
+    /* quota atteint ou navigation privee : on ignore */
+  }
+}
+function restore(): boolean {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(SAVE_KEY);
+  } catch {
+    return false;
+  }
+  if (!raw) return false;
+  try {
+    const d = JSON.parse(raw) as {
+      pattern?: Pattern | null;
+      turns?: { role: 'user' | 'assistant'; content: string }[];
+      bpm?: string;
+      bars?: string;
+      sens?: string;
+      withOrig?: boolean;
+    };
+    if (d.bars) ui.bars.value = d.bars;
+    if (d.sens) ui.sens.value = d.sens;
+    if (typeof d.withOrig === 'boolean') ui.withOrig.checked = d.withOrig;
+    if (d.pattern?.grid) {
+      pattern = d.pattern;
+      if (d.bpm) ui.bpm.value = d.bpm;
+    }
+    if (Array.isArray(d.turns)) {
+      for (const t of d.turns) {
+        turns.push(t);
+        addMsg(t.role === 'assistant' ? 'ai' : 'user', t.content);
+      }
+    }
+    return !!pattern || turns.length > 0;
+  } catch {
+    return false;
+  }
+}
+ui.withOrig.addEventListener('change', persist);
+
 // ---------- Accueil ----------
-addMsg(
-  'ai',
-  ARTIFACT
-    ? "Salut ! Enregistre ton rythme au Dictaphone, puis envoie-le-moi avec le trombone en bas. Je le transforme en boucle de batterie, et ensuite tu me dis ce que tu veux changer."
-    : 'Salut ! Touche le micro et beatboxe ton rythme deux fois, ou envoie un audio avec le trombone. Je le transforme en boucle, et ensuite tu me dis ce que tu veux changer.',
-);
+const restored = restore();
+if (!restored) {
+  addMsg(
+    'ai',
+    ARTIFACT
+      ? "Salut ! Enregistre ton rythme au Dictaphone, puis envoie-le-moi avec le trombone en bas. Je le transforme en boucle de batterie, et ensuite tu me dis ce que tu veux changer."
+      : 'Salut ! Touche le micro et beatboxe ton rythme deux fois, ou envoie un audio avec le trombone. Je le transforme en boucle, et ensuite tu me dis ce que tu veux changer.',
+  );
+}
 setChips(["Essayer l'exemple"]);
 refreshStudio();
 
