@@ -31,13 +31,32 @@ function readBody(req: any): Promise<any> {
 }
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Methode non autorisee' });
-    return;
-  }
   const key = process.env.GEMINI_KEY || process.env.GEMINI_API_KEY;
   if (!key) {
     res.status(500).json({ error: 'GEMINI_KEY manquante cote serveur (a regler dans Vercel).' });
+    return;
+  }
+
+  // Debug : ouvrir /api/mentor dans le navigateur (GET) liste les modeles
+  // disponibles pour cette cle, pour choisir le plus rapide.
+  if (req.method === 'GET') {
+    try {
+      const lr = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models?key=' + encodeURIComponent(key),
+      );
+      const ld: any = await lr.json();
+      const models = (ld?.models ?? [])
+        .filter((m: any) => (m.supportedGenerationMethods ?? []).includes('generateContent'))
+        .map((m: any) => m.name);
+      res.status(200).json({ models });
+    } catch {
+      res.status(502).json({ error: 'Liste des modeles indisponible.' });
+    }
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Methode non autorisee' });
     return;
   }
 

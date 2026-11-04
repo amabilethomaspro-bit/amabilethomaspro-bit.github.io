@@ -61,15 +61,17 @@ export function createRemoteSample(endpoint = '/api/mentor'): Sample {
     for (let round = 0; round < 6; round++) {
       let res: Response;
       try {
+        const timeout = AbortSignal.timeout(45000);
+        const reqSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
         res = await fetch(endpoint, {
           method: 'POST',
-          signal,
+          signal: reqSignal,
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ contents, tools: toolDecls }),
         });
-      } catch (e) {
-        if ((e as MentorError)?.name === 'AbortError') fail('Arrete.', 'cancelled');
-        fail('Pas de connexion au mentor.', 'connection');
+      } catch {
+        if (signal?.aborted) fail('Arrete.', 'cancelled');
+        fail('Le mentor a mis trop de temps a repondre, reessaie.', 'connection');
       }
       if (res.status === 404) fail('Mentor indisponible ici.', 'capability_disabled');
       if (!res.ok) {
