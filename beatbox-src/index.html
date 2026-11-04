@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ccircle cx=%278%27 cy=%278%27 r=%277%27 fill=%27%23ff5a36%27/%3E%3C/svg%3E" />
+    <title>Beatbox Studio</title>
+  </head>
+  <body>
+    <div class="app">
+      <header class="studio">
+        <div class="bar">
+          <div class="brand">Beatbox Studio</div>
+          <div class="transport">
+            <button id="play" class="round" aria-label="Lecture" title="Lecture (espace)" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button id="stop" class="round ghost" aria-label="Stop" title="Stop" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+            </button>
+            <label class="bpm">BPM <input id="bpm" type="number" min="40" max="220" step="0.5" value="90" disabled /></label>
+            <button id="toggleGrid" class="chip" aria-expanded="true">Grille</button>
+            <button id="menuBtn" class="chip" aria-expanded="false">Plus</button>
+          </div>
+        </div>
+        <div id="menu" class="menu" hidden>
+          <label class="check"><input id="withOrig" type="checkbox" /> Superposer ma voix</label>
+          <label>Mesures <select id="bars"><option value="auto">auto</option><option>1</option><option>2</option><option>4</option></select></label>
+          <label>Sensibilité <input id="sens" type="range" min="0.5" max="2" step="0.1" value="1" /></label>
+          <button id="playOrig" class="chip">Écouter ma voix</button>
+          <button id="midi" class="chip">Exporter MIDI</button>
+          <button id="json" class="chip">Exporter JSON</button>
+        </div>
+        <div id="gridWrap" class="gridWrap">
+          <div id="empty" class="emptyGrid">Ta boucle apparaîtra ici dès que tu m'envoies un beatbox.</div>
+          <div id="grid" class="grid" hidden></div>
+          <canvas id="wave" height="44" hidden></canvas>
+        </div>
+      </header>
+
+      <main id="thread" class="thread" aria-live="polite"></main>
+
+      <footer class="composer">
+        <div id="chips" class="suggest"></div>
+        <form id="form" class="box">
+          <label class="iconBtn" title="Importer un audio" aria-label="Importer un audio">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 6.5v10a4.5 4.5 0 0 1-9 0V5a3 3 0 0 1 6 0v10.5a1.5 1.5 0 0 1-3 0V6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <input id="file" type="file" accept="audio/*" hidden />
+          </label>
+          <button id="rec" type="button" class="iconBtn" title="Enregistrer au micro" aria-label="Enregistrer au micro">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <textarea id="input" rows="1" placeholder="Dis-moi ce que tu veux changer…" aria-label="Message"></textarea>
+          <button id="send" type="submit" class="sendBtn" aria-label="Envoyer">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </form>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

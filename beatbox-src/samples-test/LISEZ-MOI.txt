@@ -1,0 +1,3 @@
+Dépose ici tes enregistrements de beatbox (10 s chacun, .m4a/.wav/.mp3).
+Nomme-les avec ce que tu as voulu faire, ex : boum-tchac-90bpm.m4a
+Claude Code s'en servira pour calibrer la reconnaissance sur ta voix.
