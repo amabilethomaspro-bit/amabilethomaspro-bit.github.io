@@ -27,11 +27,12 @@ type SampleOpts = {
   onText?: (x: { text: string }) => void;
 };
 
-type MentorError = Error & { code?: string };
+type MentorError = Error & { code?: string; text?: string };
 
-function fail(message: string, code: string): never {
+function fail(message: string, code: string, text?: string): never {
   const e = new Error(message) as MentorError;
   e.code = code;
+  if (text) e.text = text;
   throw e;
 }
 
@@ -71,10 +72,16 @@ export function createRemoteSample(endpoint = '/api/mentor'): Sample {
         fail('Pas de connexion au mentor.', 'connection');
       }
       if (res.status === 404) fail('Mentor indisponible ici.', 'capability_disabled');
-      if (!res.ok) fail('Le mentor a renvoye une erreur (' + res.status + ').', 'connection');
+      if (!res.ok) {
+        const info = (await res.json().catch(() => null)) as { error?: string; detail?: string } | null;
+        const d = info
+          ? (info.error ?? '') + (info.detail ? ' — ' + info.detail : '')
+          : 'HTTP ' + res.status;
+        fail('Erreur serveur.', 'connection', d || 'HTTP ' + res.status);
+      }
 
       const data = (await res.json()) as { parts?: Part[]; error?: string };
-      if (data.error) fail(data.error, 'connection');
+      if (data.error) fail(data.error, 'connection', data.error);
       const parts = data.parts ?? [];
 
       const text = parts
