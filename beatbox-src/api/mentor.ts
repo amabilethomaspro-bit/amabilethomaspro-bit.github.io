@@ -5,7 +5,7 @@
 //
 // Variables d'environnement a regler dans Vercel :
 //   GEMINI_KEY    (obligatoire) ta cle Google AI Studio, qui commence par AIza...
-//   GEMINI_MODEL  (optionnel)   defaut : gemini-3.8-flash
+//   GEMINI_MODEL  (optionnel)   defaut : gemini-flash-lite-latest (rapide, peu cher, toujours a jour)
 
 const RULES = `Tu es un beatmaker hip-hop experimente qui coache un jeune beatmaker plein d'idees mais peu technique, dans une appli de MAO. Il beatboxe ses rythmes, l'appli les transforme en boucle de batterie (pistes kick, snare, hihat ; grille de 16 pas par mesure, x = coup).
 Regles :
@@ -63,7 +63,7 @@ export default async function handler(req: any, res: any) {
   const body = await readBody(req);
   const contents = Array.isArray(body?.contents) ? body.contents : [];
   const toolDecls = Array.isArray(body?.tools) ? body.tools : [];
-  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 
   const payload: Record<string, unknown> = {
     systemInstruction: { parts: [{ text: RULES }] },
