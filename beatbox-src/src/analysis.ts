@@ -174,16 +174,59 @@ export function classify(f: { low: number; centroid: number; high: number }, s =
   return 'snare';
 }
 
-export function analyzeHits(signal: Float32Array, sr: number, sensitivity = 1, s = DEFAULT_CLASSIFIER): Hit[] {
+// ---------- Classification par calibrage (apprend la voix de l'utilisateur) ----------
+// Les seuils fixes ci-dessus sont regles sur des sons "types" et ratent souvent une
+// vraie voix sur micro de telephone. Le calibrage enregistre quelques exemples de
+// chaque son par l'utilisateur, puis classe chaque coup par ressemblance (plus proche
+// voisin) avec ces exemples. Robuste pour n'importe quelle voix.
+export type FeatureVec = { low: number; centroid: number; high: number };
+export type Calibration = Record<DrumClass, FeatureVec[]>;
+
+function featureDistance(a: FeatureVec, b: FeatureVec): number {
+  const dc = (a.centroid - b.centroid) / 10000; // Hz ramene a une echelle comparable a low/high
+  const dl = a.low - b.low;
+  const dh = a.high - b.high;
+  return dc * dc + dl * dl + dh * dh;
+}
+
+/** true quand chaque son a au moins un exemple enregistre. */
+export function calibrationReady(cal: Calibration): boolean {
+  return DRUMS.every((d) => cal[d].length >= 1);
+}
+
+/** Classe un coup par le plus proche exemple calibre. null si aucun exemple. */
+export function classifyByCalibration(f: FeatureVec, cal: Calibration): DrumClass | null {
+  let best: DrumClass | null = null;
+  let bestD = Infinity;
+  for (const d of DRUMS) {
+    for (const ex of cal[d]) {
+      const dist = featureDistance(f, ex);
+      if (dist < bestD) {
+        bestD = dist;
+        best = d;
+      }
+    }
+  }
+  return best;
+}
+
+export function analyzeHits(
+  signal: Float32Array,
+  sr: number,
+  sensitivity = 1,
+  s = DEFAULT_CLASSIFIER,
+  calibration?: Calibration,
+): Hit[] {
   const onsets = detectOnsets(signal, sr, sensitivity);
   const raw = onsets.map((time) => {
     const f = extractFeatures(signal, sr, time);
     return { time, f };
   });
   const maxPeak = Math.max(1e-9, ...raw.map((r) => r.f.peak));
+  const useCal = !!calibration && calibrationReady(calibration);
   return raw.map(({ time, f }) => ({
     time,
-    cls: classify(f, s),
+    cls: useCal ? (classifyByCalibration(f, calibration!) ?? classify(f, s)) : classify(f, s),
     strength: Math.min(1, Math.max(0.3, f.peak / maxPeak)),
     features: { low: f.low, centroid: f.centroid, high: f.high },
   }));
@@ -238,8 +281,8 @@ export function quantize(hits: Hit[], bpm: number, barsOverride?: number): Patte
   return { bpm, bars, steps, grid, offset };
 }
 
-export function analyze(signal: Float32Array, sr: number, opts: { sensitivity?: number; bpm?: number; bars?: number; classifier?: ClassifierSettings } = {}) {
-  const hits = analyzeHits(signal, sr, opts.sensitivity ?? 1, opts.classifier);
+export function analyze(signal: Float32Array, sr: number, opts: { sensitivity?: number; bpm?: number; bars?: number; classifier?: ClassifierSettings; calibration?: Calibration } = {}) {
+  const hits = analyzeHits(signal, sr, opts.sensitivity ?? 1, opts.classifier, opts.calibration);
   const bpm = opts.bpm ?? estimateBpm(hits.map((h) => h.time));
   return { hits, pattern: quantize(hits, bpm, opts.bars) };
 }

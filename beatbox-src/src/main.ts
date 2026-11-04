@@ -1,6 +1,6 @@
 import './style.css';
 import * as Tone from 'tone';
-import { analyze, toMono, DRUMS, type DrumClass, type Hit, type Pattern } from './analysis';
+import { analyze, toMono, DRUMS, detectOnsets, extractFeatures, calibrationReady, type DrumClass, type Hit, type Pattern, type Calibration } from './analysis';
 import { patternToMidi } from './midi';
 import { loadKit, type Kit } from './drums';
 import { renderBeatbox, type Placed } from './synth';
@@ -46,6 +46,8 @@ let recorder: MediaRecorder | null = null;
 let cells: HTMLButtonElement[][] = [];
 let busy: AbortController | null = null;
 const turns: { role: 'user' | 'assistant'; content: string }[] = [];
+let calibration: Calibration = { kick: [], snare: [], hihat: [] };
+let calibrating: DrumClass | null = null;
 
 if (ARTIFACT) ui.rec.hidden = true;
 
@@ -105,7 +107,12 @@ function setChips(list: string[]) {
     c.type = 'button';
     c.className = 'chip';
     c.textContent = label;
-    c.onclick = () => (label === "Essayer l'exemple" ? runDemo() : sendText(label));
+    c.onclick = () =>
+      label === "Essayer l'exemple"
+        ? runDemo()
+        : label === 'Calibrer ma voix'
+          ? startCalibration()
+          : sendText(label);
     ui.chips.appendChild(c);
   }
 }
@@ -120,6 +127,10 @@ async function decodeAndLoad(buf: ArrayBuffer, name: string) {
 
 function loadSignal(sig: Float32Array, sr: number, name: string) {
   stop();
+  if (calibrating) {
+    captureCalibration(sig, sr);
+    return;
+  }
   attachMsg(name);
   signal = sig;
   sampleRate = sr;
@@ -177,6 +188,50 @@ ui.rec.onclick = async () => {
   }
 };
 
+// ---------- Calibrage de la voix ----------
+const CAL_ORDER: DrumClass[] = ['kick', 'snare', 'hihat'];
+const CAL_PROMPT: Record<DrumClass, string> = {
+  kick: "fais-moi 4-5 KICKS d'affilée (« boum boum boum boum »), bien nets, puis touche le micro pour arrêter (ou importe l'audio).",
+  snare: 'maintenant 4-5 CAISSES CLAIRES (« tchac tchac tchac tchac »).',
+  hihat: 'enfin 4-5 CHARLEYS (« tss tss tss tss »).',
+};
+
+function startCalibration() {
+  calibration = { kick: [], snare: [], hihat: [] };
+  calibrating = 'kick';
+  setChips([]);
+  addMsg('ai', 'On calibre ma détection sur TA voix. Étape 1/3 : ' + CAL_PROMPT.kick);
+  ui.input.placeholder = 'Enregistre/importe tes kicks…';
+}
+
+function captureCalibration(sig: Float32Array, sr: number) {
+  if (!calibrating) return;
+  const onsets = detectOnsets(sig, sr, Number(ui.sens.value));
+  const feats = onsets.map((t) => {
+    const f = extractFeatures(sig, sr, t);
+    return { low: f.low, centroid: f.centroid, high: f.high };
+  });
+  const current = calibrating;
+  if (feats.length < 2) {
+    addMsg('ai', `Je n'ai entendu que ${feats.length} coup(s). Refais-en 4-5 bien nets, plus près du micro — ${CAL_PROMPT[current]}`);
+    return;
+  }
+  calibration[current].push(...feats);
+  const next = CAL_ORDER[CAL_ORDER.indexOf(current) + 1];
+  if (next) {
+    calibrating = next;
+    const step = CAL_ORDER.indexOf(next) + 1;
+    addMsg('ai', `Noté, ${feats.length} ${TRACK_FR[current]}. Étape ${step}/3 : ${CAL_PROMPT[next]}`);
+    return;
+  }
+  calibrating = null;
+  ui.input.placeholder = 'Dis-moi ce que tu veux changer…';
+  persist();
+  addMsg('ai', "C'est calibré ! Je reconnais maintenant tes kicks, caisses claires et charleys. Renvoie ton beatbox, tu verras la différence.");
+  setChips(["Essayer l'exemple", 'Calibrer ma voix']);
+  if (signal) runAnalysis(true); // reclasse la boucle en cours avec le nouveau calibrage
+}
+
 async function runDemo() {
   await Tone.start();
   const cls: DrumClass[] = ['kick', 'snare', 'snare', 'kick', 'snare', 'kick', 'snare', 'snare'];
@@ -190,7 +245,12 @@ function runAnalysis(keepBpm = false) {
   if (!signal) return;
   const bars = ui.bars.value === 'auto' ? undefined : Number(ui.bars.value);
   const bpm = keepBpm && pattern ? pattern.bpm : undefined;
-  const res = analyze(signal, sampleRate, { sensitivity: Number(ui.sens.value), bpm, bars });
+  const res = analyze(signal, sampleRate, {
+    sensitivity: Number(ui.sens.value),
+    bpm,
+    bars,
+    calibration: calibrationReady(calibration) ? calibration : undefined,
+  });
   hits = res.hits;
   pattern = res.pattern;
   refreshStudio();
@@ -543,6 +603,7 @@ function persist() {
       JSON.stringify({
         pattern,
         turns,
+        calibration,
         bpm: ui.bpm.value,
         bars: ui.bars.value,
         sens: ui.sens.value,
@@ -565,11 +626,13 @@ function restore(): boolean {
     const d = JSON.parse(raw) as {
       pattern?: Pattern | null;
       turns?: { role: 'user' | 'assistant'; content: string }[];
+      calibration?: Calibration;
       bpm?: string;
       bars?: string;
       sens?: string;
       withOrig?: boolean;
     };
+    if (d.calibration?.kick && d.calibration.snare && d.calibration.hihat) calibration = d.calibration;
     if (d.bars) ui.bars.value = d.bars;
     if (d.sens) ui.sens.value = d.sens;
     if (typeof d.withOrig === 'boolean') ui.withOrig.checked = d.withOrig;
@@ -600,7 +663,7 @@ if (!restored) {
       : 'Salut ! Touche le micro et beatboxe ton rythme deux fois, ou envoie un audio avec le trombone. Je le transforme en boucle, et ensuite tu me dis ce que tu veux changer.',
   );
 }
-setChips(["Essayer l'exemple"]);
+setChips(["Essayer l'exemple", 'Calibrer ma voix']);
 refreshStudio();
 
 // Accès console pour déboguer : window.beat
