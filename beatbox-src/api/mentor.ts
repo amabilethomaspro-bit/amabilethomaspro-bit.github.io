@@ -59,21 +59,41 @@ export default async function handler(req: any, res: any) {
     ':generateContent?key=' +
     encodeURIComponent(key);
 
-  let r: Response;
-  try {
-    r = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    res.status(502).json({ error: 'Impossible de joindre Gemini.' });
-    return;
+  const init = {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  };
+  // Gemini renvoie parfois 503 (surcharge) ou 429 : on reessaie quelques fois
+  // avec une petite attente avant d'abandonner.
+  let r: Response | null = null;
+  let netFail = '';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise((done) => setTimeout(done, 700 * attempt));
+    try {
+      r = await fetch(url, init);
+    } catch {
+      netFail = 'reseau';
+      r = null;
+      continue;
+    }
+    if (r.status === 503 || r.status === 429) continue; // surcharge -> nouvel essai
+    break;
   }
 
+  if (!r) {
+    res.status(502).json({ error: 'Impossible de joindre Gemini.', detail: netFail });
+    return;
+  }
   if (!r.ok) {
     const detail = (await r.text().catch(() => '')).slice(0, 300);
-    res.status(502).json({ error: 'Gemini a renvoye ' + r.status, detail });
+    const overloaded = r.status === 503 || r.status === 429;
+    res.status(overloaded ? 503 : 502).json({
+      error: overloaded
+        ? 'Gemini est surcharge la (' + r.status + '), reessaie dans un instant.'
+        : 'Gemini a renvoye ' + r.status,
+      detail,
+    });
     return;
   }
 
